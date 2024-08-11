@@ -1,5 +1,4 @@
-
- import streamlit as st
+import streamlit as st
 from datetime import datetime
 
 # Initialize session state for login status and payment completion
@@ -117,12 +116,7 @@ if st.session_state.logged_in:
 # Display the footer only after payment is completed
 if st.session_state.payment_completed:
     st.write("---")
-    st.write("Thank you for using ServDish!") 
-    
-   
-               
-
-
+    st.write("Thank you for using ServDish!")
 
 
    
