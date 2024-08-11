@@ -1,80 +1,126 @@
-import streamlit as st
-import stripe
-import os
 
-# Set your Stripe API keys
-stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
-YOUR_STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY')
+ import streamlit as st
+from datetime import datetime
 
-# Dummy data for available chefs
-chefs = [
-    {'id': 1, 'name': 'Chef Alice', 'price': 5000},  # Price in cents
-    {'id': 2, 'name': 'Chef Bob', 'price': 6000}
-]
+# Initialize session state for login status and payment completion
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
 
-def main():
-    st.title("Personal Chef Booking App")
+if 'order_confirmed' not in st.session_state:
+    st.session_state.order_confirmed = False
 
-    # Display available chefs
-    st.header("Available Chefs")
-    for chef in chefs:
-        st.subheader(chef['name'])
-        st.write(f"Price: ${chef['price'] / 100:.2f}")
-        if st.button(f"Book {chef['name']}", key=chef['id']):
-            book_chef(chef)
+if 'payment_completed' not in st.session_state:
+    st.session_state.payment_completed = False
 
-def book_chef(chef):
-    st.session_state['selected_chef'] = chef
-    st.session_state['booking'] = True
+if 'reviewed_order' not in st.session_state:
+    st.session_state.reviewed_order = False
 
-def checkout():
-    if 'booking' not in st.session_state:
-        st.write("Please select a chef to book.")
-        return
+# Title of the App
+st.title("ServDish - Your Personal Chef at Home")
 
-    chef = st.session_state['selected_chef']
+# Login Page
+if not st.session_state.logged_in:
+    st.header("Login")
+    mobile_number = st.text_input("Mobile Number")
+    gmail_account = st.text_input("Gmail Account")
+    x_account = st.text_input("X Account (formerly Twitter)")
+    login_button = st.button("Login")
+
+    if login_button:
+        st.session_state.logged_in = True
+        st.success("Logged in successfully!")
+
+# Main App after Login
+if st.session_state.logged_in:
+    # User Profile Setup
+    st.header("Profile Setup")
+    name = st.text_input("Name")
+    contact_number = st.text_input("Contact Number")
+    address = st.text_area("Home Address")
+
+    # Cuisine Selection
+    st.header("Select Your Cuisine")
+    cuisine_options = ["North Indian", "South Indian", "Gujarati", "Bengali", "Rajasthani", "Italian", "French", "American"]
+    selected_cuisine = st.selectbox("Cuisine Type", cuisine_options)
+
+    # Date and Time Selection
+    st.header("Select Date and Time for the Service")
+    order_date = st.date_input("Select Date", datetime.today())
+    order_time = st.time_input("Select Time", datetime.now().time())
+
+    # Beverage Selection
+    st.header("Choose Your Beverages")
+    beverage_options = ["Juices", "Smoothies", "Teas", "Coffees", "Soft Drinks"]
+    selected_beverages = st.multiselect("Beverages", beverage_options)
+
+    # Order Summary
+    if st.button("Review Order"):
+        st.header("Order Summary")
+        st.write(f"Name: {name}")
+        st.write(f"Contact Number: {contact_number}")
+        st.write(f"Address: {address}")
+        st.write(f"Selected Cuisine: {selected_cuisine}")
+        st.write(f"Selected Beverages: {', '.join(selected_beverages)}")
+        st.write(f"Service Date: {order_date}")
+        st.write(f"Service Time: {order_time}")
+        st.session_state.reviewed_order = True
+
+    # Payment Option after reviewing order
+    if st.session_state.reviewed_order:
+        st.header("Billing Details")
+        chef_cost = 300
+        vegetable_cost = st.number_input("Enter Market Vegetable Cost (₹)", min_value=0, value=300)
+        service_cost = 200
+        other_ingredients_cost = 100
+        delivery_cost = 100
+
+        subtotal = chef_cost + vegetable_cost + service_cost + other_ingredients_cost + delivery_cost
+        sgst = subtotal * 0.09  # 9% SGST
+        cgst = subtotal * 0.09  # 9% CGST
+        total_cost = subtotal + sgst + cgst
+
+        st.write(f"Chef Cost: ₹{chef_cost}")
+        st.write(f"Vegetable Cost: ₹{vegetable_cost}")
+        st.write(f"Service Cost: ₹{service_cost}")
+        st.write(f"Other Ingredients Cost: ₹{other_ingredients_cost}")
+        st.write(f"Delivery Cost: ₹{delivery_cost}")
+        st.write(f"SGST (9%): ₹{sgst:.2f}")
+        st.write(f"CGST (9%): ₹{cgst:.2f}")
+        st.write(f"Total Amount: ₹{total_cost:.2f}")
+
+        if st.button("Confirm Order"):
+            st.session_state.order_confirmed = True
+            st.success(f"Order confirmed for {order_date} at {order_time}! A chef will arrive at your home as scheduled.")
+
+    # Payment Option after Order Confirmation
+    if st.session_state.order_confirmed and not st.session_state.payment_completed:
+        st.header("Payment Mode")
+        payment_modes = ["Cash on Delivery (COD)", "Credit Card", "Debit Card", "Online Banking", "UPI"]
+        selected_payment_mode = st.selectbox("Select Payment Mode", payment_modes)
+
+        # Additional details based on payment mode
+        if selected_payment_mode in ["Credit Card", "Debit Card"]:
+            card_number = st.text_input("Enter Card Number")
+            expiry_date = st.text_input("Enter Expiry Date (MM/YY)")
+            cvv = st.text_input("Enter CVV", type="password")
+        
+        elif selected_payment_mode == "Cash on Delivery (COD)":
+            st.write("*Note:* ₹5 extra will be charged for Cash on Delivery.")
+        
+        elif selected_payment_mode == "UPI":
+            upi_id = st.text_input("Enter UPI ID")
+
+        if st.button("Make Payment"):
+            st.session_state.payment_completed = True
+            st.success(f"Payment method selected: {selected_payment_mode}. Your order is now complete!")
+
+# Display the footer only after payment is completed
+if st.session_state.payment_completed:
+    st.write("---")
+    st.write("Thank you for using ServDish!") 
     
-    st.header(f"Checkout for {chef['name']}")
-    st.write(f"Amount: ${chef['price'] / 100:.2f}")
-
-    with st.form("payment_form"):
-        card_number = st.text_input("Card Number")
-        exp_month = st.number_input("Expiry Month", min_value=1, max_value=12, format="%d")
-        exp_year = st.number_input("Expiry Year", min_value=2023, format="%d")
-        cvc = st.text_input("CVC")
-        submit_button = st.form_submit_button("Pay")
-
-        if submit_button:
-            # Payment logic here (Stripe integration)
-            try:
-                token = create_stripe_token(card_number, exp_month, exp_year, cvc)
-                charge = stripe.Charge.create(
-                    amount=chef['price'],
-                    currency='usd',
-                    source=token,
-                    description=f"Payment for {chef['name']}"
-                )
-                st.success("Payment successful!")
-            except stripe.error.CardError as e:
-                st.error(f"Payment failed: {e.user_message}")
-
-def create_stripe_token(card_number, exp_month, exp_year, cvc):
-    token = stripe.Token.create(
-        card={
-            "number": card_number,
-            "exp_month": exp_month,
-            "exp_year": exp_year,
-            "cvc": cvc,
-        },
-    )
-    return token.id
-
-if __name__ == "__main__":
-    st.set_page_config(page_title="Personal Chef App", layout="wide")
-    if 'booking' in st.session_state and st.session_state['booking']:
-        checkout()
-    else:
-        main()
+   
+               
 
 
 
