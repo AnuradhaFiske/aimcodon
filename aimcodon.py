@@ -1,9 +1,15 @@
 import streamlit as st
 from datetime import datetime
 
-# Initialize session state for login status
+# Initialize session state for login status and payment completion
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
+
+if 'order_confirmed' not in st.session_state:
+    st.session_state.order_confirmed = False
+
+if 'payment_completed' not in st.session_state:
+    st.session_state.payment_completed = False
 
 # Title of the App
 st.title("ServDish - Your Personal Chef at Home")
@@ -77,20 +83,28 @@ if st.session_state.logged_in:
         st.write(f"*Total Amount:* ₹{total_cost:.2f}")
 
         if st.button("Confirm Order"):
+            st.session_state.order_confirmed = True
             st.success(f"Order confirmed for {order_date} at {order_time}! A chef will arrive at your home as scheduled.")
 
-            # Payment Mode Selection
-            st.header("Payment Mode")
-            payment_modes = ["Cash on Delivery (COD)", "Credit Card", "Debit Card", "Online Banking", "UPI"]
-            selected_payment_mode = st.selectbox("Select Payment Mode", payment_modes)
+# Payment Option after Order Confirmation
+if st.session_state.order_confirmed and not st.session_state.payment_completed:
+    st.header("Payment Mode")
+    payment_modes = ["Cash on Delivery (COD)", "Credit Card", "Debit Card", "Online Banking", "UPI"]
+    selected_payment_mode = st.selectbox("Select Payment Mode", payment_modes)
 
-            if st.button("Make Payment"):
-                st.success(f"Payment method selected: {selected_payment_mode}. Your order is now complete!")
+    if st.button("Make Payment"):
+        st.session_state.payment_completed = True
+        st.success(f"Payment method selected: {selected_payment_mode}. Your order is now complete!")
 
-# Footer
-st.write("---")
-st.write("Thank you for using ServDish!")
-    
+# Display the footer only after payment is completed
+if st.session_state.payment_completed:
+    st.write("---")
+    st.write("Thank you for using ServDish!")
+   
+   
+       
+       
+            
 
    
             
